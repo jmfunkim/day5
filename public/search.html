@@ -4,13 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>제주 역사문화 정보 조회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <style>
 #lmap{height:440px;border-radius:6px;z-index:0}
-.pin{width:24px;height:24px;border-radius:50% 50% 50% 0;background:var(--accent);border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;position:relative}
+.pin{width:24px;height:24px;border-radius:50% 50% 50% 0;background:#1f7ea1;border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;position:relative}
 .pin.fav{background:#f08c00}
 .pin.sel{background:#e5484d;width:30px;height:30px}
 .pin::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff}
@@ -30,24 +32,31 @@
 .course .acts{margin-top:8px;display:flex;gap:6px}
 .pop{font:13px/1.5 "Malgun Gothic",system-ui,sans-serif;max-width:260px}
 .pop b{font-size:15px}.pop .m{color:#666}.pop p{margin:6px 0;max-height:110px;overflow:auto}
-.pop button{font:inherit;padding:3px 10px;border:0;border-radius:5px;background:#0b7a75;color:#fff;cursor:pointer;margin-right:6px}
+.pop button{font:inherit;padding:3px 10px;border:0;border-radius:5px;background:#1f7ea1;color:#fff;cursor:pointer;margin-right:6px}
 .mapnote{padding:0 2px;font-size:12px;color:var(--muted)}
-:root{--bg:#f5f7fa;--card:#fff;--text:#1d2733;--muted:#6b7785;--line:#e1e6ec;--accent:#0b7a75;--accent-bg:#e3f4f3;--hl:#fff3b0}
-@media (prefers-color-scheme:dark){:root{--bg:#14181d;--card:#1d232a;--text:#e6ebf0;--muted:#93a0ad;--line:#2e3740;--accent:#4fd1c5;--accent-bg:#183533;--hl:#5a4d00}}
+:root{--bg:#f6f3ee;--card:#fffdf9;--text:#26211c;--muted:#7a6f63;--line:#e6dfd4;--basalt:#2b2f33;--accent:#e8590c;--accent-bg:#fdebdd;--hl:#fff3b0}
+@media (prefers-color-scheme:dark){:root{--bg:#171512;--card:#211e1a;--text:#ece6dc;--muted:#a89d8f;--line:#38322b;--basalt:#0e0d0b;--accent:#ff8a3d;--accent-bg:#3a2415;--hl:#5a4d00}}
 *{box-sizing:border-box}
 body{margin:0;font:15px/1.6 "Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--text)}
-header{padding:20px 24px 8px}
-h1{margin:0;font-size:22px}
-header p{margin:2px 0 0;color:var(--muted);font-size:13px}
-.wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;padding:12px 24px 24px;align-items:start}
-@media (max-width:900px){.wrap{grid-template-columns:1fr;padding:12px 16px}}
+nav{position:sticky;top:0;z-index:1100;background:var(--basalt);color:#f3ede3}
+nav .nbin{max-width:1180px;margin:0 auto;padding:6px 20px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:54px}
+nav .logo{font-family:"Noto Serif KR","Batang",serif;font-weight:800;font-size:17px;text-decoration:none;margin-right:auto;color:inherit}
+nav a.l{padding:6px 12px;border-radius:6px;text-decoration:none;font-size:14px;color:#d9d1c4}
+nav a.l:hover,nav a.l.on{background:rgba(255,255,255,.12);color:#fff}
+@media (max-width:760px){nav .logo{flex:1 1 100%}nav a.l{padding:5px 9px;font-size:13px}}
+header{padding:22px 24px 8px;max-width:1180px;margin:0 auto}
+h1{margin:0;font:800 26px/1.3 "Noto Serif KR","Batang",serif}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;padding:12px 24px 24px;align-items:start;max-width:1180px;margin:0 auto}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);padding:12px 16px}}
+.wrap>*{min-width:0}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px}
 .filters{display:flex;flex-wrap:wrap;gap:8px;padding:12px}
 .filters input,.filters select{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}
 .filters input{flex:1 1 220px}
 .filters button{font:inherit;padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text);cursor:pointer}
 .count{padding:0 12px 8px;color:var(--muted);font-size:13px}
-.practice{position:sticky;top:0;z-index:1000;background:#ffe066;color:#4a3800;padding:8px 24px;font-size:14px;border-bottom:1px solid #e0b800}
+.practice{position:sticky;top:var(--nav-h,54px);z-index:1000;background:#ffe066;color:#4a3800;padding:8px 24px;font-size:14px;border-bottom:1px solid #e0b800}
 .practice[hidden]{display:none}
 .practice b{background:#4a3800;color:#ffe066;border-radius:4px;padding:1px 8px;margin-right:6px}
 .practice small{opacity:.8}
@@ -65,7 +74,7 @@ tbody tr:hover{background:var(--accent-bg)}
 tbody tr.sel{background:var(--accent-bg);outline:2px solid var(--accent);outline-offset:-2px}
 mark{background:var(--hl);color:inherit;border-radius:2px}
 .tag{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--accent-bg);color:var(--accent);font-size:12px}
-.side{position:sticky;top:12px;display:flex;flex-direction:column;gap:16px}
+.side{position:sticky;top:calc(var(--nav-h,54px) + 12px);display:flex;flex-direction:column;gap:16px}
 @media (max-width:900px){.side{position:static}}
 .detail{padding:16px;max-height:60vh;overflow:auto}
 .detail h2{margin:0 0 2px;font-size:19px}
@@ -80,16 +89,21 @@ dt{color:var(--muted)}dd{margin:0;word-break:break-word}
 svg{width:100%;height:auto;display:block;background:var(--bg);border-radius:6px}
 .mc{width:38px;height:38px;border-radius:50%;background:#16363d;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
 .mc span{color:#fff;font:700 13px/1 sans-serif}
-.back{margin-top:4px;font-size:14px}.back a{color:var(--accent);font-weight:600}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
+<nav><div class="nbin">
+  <a class="logo" href="/#/">제주 역사문화 탐방기</a>
+  <a class="l" href="/#/">홈</a>
+  <a class="l" href="/#/courses">테마 코스</a>
+  <a class="l" href="/#/mine">내 답사수첩</a>
+  <a class="l on" href="search.html" aria-current="page">자료 조회</a>
+</div></nav>
 <div class="practice" id="practice" hidden></div>
 <header>
   <h1>제주 역사문화 정보 조회</h1>
-  <nav class="back"><a href="/">← 탐방기 홈</a> · <a href="/#/mine">내 답사수첩</a></nav>
-  <p>제주특별자치도 제주역사문화 위치정보 + 일반정보 (데이터 기준일 2022-12-09)</p>
+  <p>제주특별자치도 제주역사문화 위치정보 + 일반정보 (데이터 기준일 2022-12-09) · 장소를 표로 찾아보고, 담은 장소는 내 답사수첩에 모입니다.</p>
 </header>
 <div class="wrap">
   <section class="card">
@@ -115,7 +129,7 @@ svg{width:100%;height:auto;display:block;background:var(--bg);border-radius:6px}
 <script>
 let DATA=[];
 const COLS=[["id","번호"],["name","장소명",1],["cat","분류"],["d1","디렉토리"],["city","지역"],["addr","주소",1]];
-const prep=()=>DATA.forEach(r=>{r.city=(r.addr.split(" ")[1]||"");r.id=+r.id;r._s=[r.name,r.title,r.addr,r.topic,r.body,r.d1,r.d2].join("\n").toLowerCase()});
+const prep=()=>DATA.forEach(r=>{r.city=(r.addr.split(" ")[1]||"");r.id=+r.id;r._s=[r.name,r.title,r.addr,r.topic,r.abs,r.body,r.d1,r.d2].join("\n").toLowerCase()});
 const $=s=>document.querySelector(s);
 let sort={k:"id",d:1},sel=null,view=[];
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -220,7 +234,9 @@ function showPractice(reason){
 function apply(rows){
   DATA=rows;prep();favs=favs.filter(i=>byId(i));
   if(map){map.remove();map=null;markers={};route=null;group=null}
-  $("#fCat").length=1;$("#fD1").length=1;fillSel();render(true);
+  $("#fCat").length=1;$("#fD1").length=1;fillSel();
+  const qp=new URLSearchParams(location.search).get("q");if(qp&&!$("#q").value)$("#q").value=qp;
+  render(true);
 }
 /* quiet=true: 연습 모드에서 화면을 유지한 채 API 재연결만 시도 */
 async function load(quiet){
@@ -235,6 +251,8 @@ async function load(quiet){
     console.warn("[데이터 불러오기 실패]",e.message);$("#count").setAttribute("role","alert");$("#count").innerHTML=`데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요. <button onclick="load()">다시 시도</button>`;
   }
 }
+/* 메뉴 높이가 바뀔 때마다(모바일에서 두 줄이 되는 경우 등) CSS 변수를 갱신 */
+{const nav=document.querySelector("nav"),set=()=>document.documentElement.style.setProperty("--nav-h",nav.offsetHeight+"px");set();if(window.ResizeObserver)new ResizeObserver(set).observe(nav);else addEventListener("resize",set)}
 load();
 </script>
 </body>
