@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <style>
 :root{--bg:#f6f3ee;--card:#fffdf9;--text:#26211c;--muted:#7a6f63;--line:#e6dfd4;--basalt:#2b2f33;--accent:#e8590c;--accent-bg:#fdebdd;--hero1:#16363d;--hero2:#2c5b57}
 @media (prefers-color-scheme:dark){:root{--bg:#171512;--card:#211e1a;--text:#ece6dc;--muted:#a89d8f;--line:#38322b;--basalt:#0e0d0b;--accent:#ff8a3d;--accent-bg:#3a2415;--hero1:#0f2327;--hero2:#1d3d3a}}
@@ -124,6 +126,33 @@ footer a{color:#ffc58f}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .skel{background:linear-gradient(90deg,var(--line) 25%,var(--card) 50%,var(--line) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:10px}
 @keyframes shimmer{to{background-position:-200% 0}}
+.mc{width:38px;height:38px;border-radius:50%;background:#16363d;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+.mc span{color:#fff;font:700 13px/1 sans-serif}
+.pin.done{background:#2f9e44!important}
+.pin.done::after{display:none}
+.stop.done h3::after{content:"✓ 다녀옴";margin-left:8px;font:700 12px "Malgun Gothic",sans-serif;color:#2f9e44;vertical-align:2px}
+.donebtn{padding:5px 12px;border-radius:7px;border:1px solid #2f9e44;background:var(--card);color:#2b8a3e;font-size:13px;font-weight:600}
+.donebtn.on{background:#2f9e44;color:#fff}
+.memo{display:block;width:100%;margin-top:8px;padding:8px 10px;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);resize:vertical}
+.memo-note{font-size:12px;color:var(--muted);margin:2px 0 0}
+.nearby{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px}
+.nearby .btn{border:0}
+.nearby .hint{font-size:13px;color:var(--muted)}
+.nearbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:14px}
+.nearbox ol{list-style:none;margin:0;padding:0}
+.nearbox li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.nearbox li:last-child{border-bottom:0}
+.nearbox .d{flex:none;min-width:62px;font-weight:700;color:var(--accent)}
+.nearbox small{color:var(--muted)}
+.nearbox .warn{margin:0 0 6px;color:#c26e00;font-size:14px}
+.segtabs{display:flex;gap:8px;overflow-x:auto;padding:14px 0 6px}
+.segtabs a{flex:none;color:var(--text);padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);text-decoration:none;font-size:14px;white-space:nowrap}
+.segtabs a small{color:var(--muted)}
+.segtabs a.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.segtabs a.on small{color:inherit;opacity:.75}
+.segnote{font-size:12px;color:var(--muted);margin:0 0 10px}
+h2.segh{font-size:18px;margin:18px 0 8px}
+h2.segh small{font:400 13px "Malgun Gothic",sans-serif;color:var(--muted);margin-left:6px}
 </style>
 </head>
 <body>
@@ -191,21 +220,61 @@ function toggleFav(id){
   else toast(`수첩에 담았어요: ${r.name} (지금 ${favs.length}곳)`,{label:"수첩 보기",fn:()=>{closePlace();location.hash="#/mine"}});
 }
 const isMine=()=>location.hash.startsWith("#/mine");
+/* 다녀옴 · 메모 (이 브라우저에만 저장) */
+let notes={};try{notes=JSON.parse(localStorage.getItem("jejuNotes")||"{}")}catch(e){}
+const saveNotes=()=>{try{localStorage.setItem("jejuNotes",JSON.stringify(notes))}catch(e){}};
+const isDone=id=>!!(notes[id]&&notes[id].done);
+const memoOf=id=>(notes[id]&&notes[id].memo)||"";
+function setNote(id,patch){const n=Object.assign({},notes[id],patch);if(!n.done&&!n.memo)delete notes[id];else notes[id]=n;saveNotes()}
+const doneBtn=id=>`<button class="donebtn${isDone(id)?" on":""}" data-done="${id}" onclick="toggleDone(${id})">${isDone(id)?"✓ 다녀옴":"☐ 다녀왔어요"}</button>`;
+const memoBox=id=>`<textarea class="memo" maxlength="300" rows="2" aria-label="메모" placeholder="메모 (예: 주차 가능, 오후에 방문)" oninput="setNote(${id},{memo:this.value})">${esc(memoOf(id))}</textarea>`;
+function updateNotesUI(){
+  document.querySelectorAll("[data-done]").forEach(b=>{const id=+b.dataset.done;b.textContent=isDone(id)?"✓ 다녀옴":"☐ 다녀왔어요";b.classList.toggle("on",isDone(id))});
+  document.querySelectorAll(".stop[data-id]").forEach(e=>e.classList.toggle("done",isDone(+e.dataset.id)));
+  const p=$("#progress");if(p)p.textContent=`✓ 다녀온 곳 ${favs.filter(isDone).length}/${favs.length}`;
+}
+function toggleDone(id){
+  setNote(id,{done:!isDone(id)});updateNotesUI();refreshPins();
+  toast(isDone(id)?`다녀온 곳으로 표시했어요: ${byId(id).name}`:`표시를 해제했어요: ${byId(id).name}`);
+}
+/* 코스를 구간(하루 일정)으로 나누기: 행정시별로 묶고, 12곳이 넘으면 서→동으로 잘라 구간마다 가까운 곳 순으로 잇는다 */
+const SEG_MAX=12,SEGS={};
+function segment(list){
+  const parts=[],CITIES=["제주시","서귀포시"];
+  for(const city of [...CITIES,null]){
+    const g=list.filter(r=>city?r.city===city:!CITIES.includes(r.city)).sort((a,b)=>a.lng-b.lng);if(!g.length)continue;
+    const n=Math.ceil(g.length/SEG_MAX),lab=n===2?["서부","동부"]:n===3?["서부","중부","동부"]:Array.from({length:n},(_,i)=>String(i+1));
+    for(let i=0;i<n;i++)parts.push({name:(city||"기타")+(n>1?" "+lab[i]:""),list:route(g.slice(Math.round(g.length*i/n),Math.round(g.length*(i+1)/n)))});
+  }
+  return parts.map((s,i)=>({...s,no:i+1}));
+}
+const segKm=s=>sum(legs(s.list));
+const courseKm=k=>sum(SEGS[k].map(segKm));
+/* 차로 이동 시간: 직선거리 ×1.4 를 시속 40km로 달린다고 가정한 대략값 */
+const fmtMin=km=>{const m=Math.round(km*1.4/40*60/5)*5;return m<60?`${m}분`:`${Math.floor(m/60)}시간${m%60?" "+m%60+"분":""}`};
+const legTxt=(lg,j)=>j>0?`이전 장소에서 약 ${lg[j-1].toFixed(1)}km`:"출발";
 /* 지도 */
-let cur=null;
-function destroyMap(){if(cur){cur.remove();cur=null}}
-function pin(color,num){return L.divIcon({className:"",html:`<div class="pin${num===""?" dot":""}" style="background:${color}"><span>${num}</span></div>`,iconSize:[26,26],iconAnchor:[7,26],popupAnchor:[6,-26]})}
+let cur=null,curMM=null;
+function destroyMap(){if(cur){cur.remove();cur=null}curMM=null;userMarker=null}
+function pin(color,num,done){return L.divIcon({className:"",html:`<div class="pin${done?" done":num===""?" dot":""}" style="background:${color}"><span>${done?"✓":num}</span></div>`,iconSize:[26,26],iconAnchor:[7,26],popupAnchor:[6,-26]})}
+function refreshPins(){
+  const mm=curMM;if(!mm)return;
+  mm.list.forEach((r,i)=>{const m=mm.markers[r.id];if(m)m.setIcon(pin(mm.o.color(r),mm.o.numbered?i+1:"",isDone(r.id)))});
+}
 function popup(r){return `<div class="pop"><b>${esc(r.name)}</b><div class="m">${esc(THEMES[r.theme].name)} · ${esc(r.area)}</div><p>${esc(snip(r,90))}</p><button class="sbtn" onclick="openPlace(${r.id})">이야기 읽기</button>${favBtn(r.id)}</div>`}
 function mkMap(el,list,o){
   if(typeof L==="undefined"){el.innerHTML='<div class="nomap">지도를 불러오지 못했습니다.<br>인터넷 연결을 확인해 주세요.</div>';return null}
   const map=L.map(el,{scrollWheelZoom:false}).setView([33.38,126.55],9),markers={};
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-  list.forEach((r,i)=>{const m=L.marker([r.lat,r.lng],{icon:pin(o.color(r),o.numbered?i+1:""),title:r.name}).addTo(map).bindPopup(()=>popup(r),{autoPanPadding:[30,30]});
+  /* 핀이 많은 지도는 가까운 핀을 숫자로 묶는다 (확대하면 풀림) */
+  const group=o.cluster&&L.markerClusterGroup?L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:46,iconCreateFunction:c=>L.divIcon({className:"",html:`<div class="mc"><span>${c.getChildCount()}</span></div>`,iconSize:[38,38]})}).addTo(map):null;
+  list.forEach((r,i)=>{const m=L.marker([r.lat,r.lng],{icon:pin(o.color(r),o.numbered?i+1:"",isDone(r.id)),title:r.name}).bindPopup(()=>popup(r),{autoPanPadding:[30,30]});
+    if(group)group.addLayer(m);else m.addTo(map);
     m.on("click",()=>o.onPick&&o.onPick(r.id));markers[r.id]=m});
-  const ll=list.map(r=>[r.lat,r.lng]);
-  if(o.line&&ll.length>1)L.polyline(ll,{color:o.line,weight:4,opacity:.9,dashArray:"9 8"}).addTo(map);
-  if(ll.length)map.fitBounds(L.latLngBounds(ll),{padding:[34,34],maxZoom:13});
-  cur=map;return {map,markers};
+  /* 구간마다 따로 선을 긋는다 (구간 사이는 잇지 않음) */
+  (o.segs||[list]).forEach(s=>{if(o.line&&s.length>1)L.polyline(s.map(r=>[r.lat,r.lng]),{color:o.line,weight:4,opacity:.9,dashArray:"9 8"}).addTo(map)});
+  if(list.length)map.fitBounds(L.latLngBounds(list.map(r=>[r.lat,r.lng])),{padding:[34,34],maxZoom:13});
+  cur=map;curMM={map,markers,group,list,o};return curMM;
 }
 /* 상세 모달 */
 function openPlace(id){
@@ -213,7 +282,8 @@ function openPlace(id){
   $("#modal").innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="장소 상세"><button class="x" onclick="closePlace()" aria-label="닫기">×</button>
    <span class="chip" style="background:${t.color}">${esc(t.name)}</span>
    <h2>${esc(r.name)}</h2><div style="color:var(--muted);font-size:14px">${esc(r.addr)}</div>
-   <div style="margin:12px 0">${favBtn(r.id)} ${r.link?`<a class="sbtn" style="text-decoration:none;display:inline-block" href="${esc(r.link)}" target="_blank" rel="noopener">원문 보기 ↗</a>`:""}</div>
+   <div style="margin:12px 0 4px">${favBtn(r.id)} ${doneBtn(r.id)} ${r.link?`<a class="sbtn" style="text-decoration:none;display:inline-block" href="${esc(r.link)}" target="_blank" rel="noopener">원문 보기 ↗</a>`:""}</div>
+   ${memoBox(r.id)}<p class="memo-note">메모와 다녀옴 표시는 이 브라우저에만 저장돼요.</p>
    <dl>${row("자료 제목",esc(r.title))}${row("부제",esc(r.sub))}${row("저작자",esc(r.author))}${row("발행자",esc(r.pub))}${row("발행일",esc(r.date))}${row("분류",esc(r.cat+" · "+r.d1))}${row("좌표",r.lat+", "+r.lng)}</dl>
    ${r.abs&&r.abs!=="해당없음"?`<h4>초록</h4><div class="txt">${esc(r.abs)}</div>`:""}
    ${r.body?`<h4>내용</h4><div class="txt">${esc(r.body)}</div>`:""}
@@ -232,7 +302,7 @@ function closePlace(){
 /* 팝업창 안에서 Tab 키가 밖으로 나가지 않게 */
 $("#modal").addEventListener("keydown",e=>{
   if(e.key!=="Tab")return;
-  const f=[...$("#modal").querySelectorAll("button,a[href]")].filter(x=>!x.disabled);
+  const f=[...$("#modal").querySelectorAll("button,a[href],textarea")].filter(x=>!x.disabled);
   if(!f.length)return;const a=f[0],z=f[f.length-1];
   if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}
   else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}
@@ -241,7 +311,7 @@ $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closePlace()})
 addEventListener("keydown",e=>{if(e.key==="Escape")closePlace()});
 /* 화면: 홈 */
 function viewHome(){
-  const tot=sum(KEYS.map(k=>sum(legs(ROUTES[k])))),jj=DATA.filter(r=>r.city==="제주시").length,sg=DATA.length-jj;
+  const jj=DATA.filter(r=>r.city==="제주시").length,sg=DATA.length-jj;
   const td=DATA[Math.floor(Date.now()/864e5)%DATA.length],tt=THEMES[td.theme];
   $("#app").innerHTML=`
   <header class="hero"><div class="wrap">
@@ -263,47 +333,89 @@ function viewHome(){
   <section class="blk" id="course-list"><h2 class="sec serif">테마 코스</h2><p class="sec-sub">장소의 성격에 따라 묶고, 서쪽에서 동쪽으로 가까운 곳부터 이었습니다.</p>
     <div class="grid">${KEYS.map(k=>{const l=ROUTES[k],t=THEMES[k],c1=l.filter(r=>r.city==="제주시").length;
       return `<a class="ccard" href="#/course/${k}"><div class="top" style="background:${t.color}"></div><div class="in"><h3>${t.name}</h3>
-      <div class="m">${l.length}곳 · 직선 약 ${sum(legs(l)).toFixed(0)}km · 제주시 ${c1} / 서귀포시 ${l.length-c1}</div>
-      <p>${esc(t.lede.split(".")[0])}.</p><div class="via"><b style="color:${t.color}">${esc(l[0].name)}</b> → … → <b style="color:${t.color}">${esc(l[l.length-1].name)}</b></div></div></a>`}).join("")}</div></section>
+      <div class="m">${l.length}곳${SEGS[k].length>1?` · ${SEGS[k].length}개 구간`:""} · 구간 내 직선 합계 약 ${courseKm(k).toFixed(0)}km · 제주시 ${c1} / 서귀포시 ${l.length-c1}</div>
+      <p>${esc(t.lede.split(".")[0])}.</p><div class="via" style="color:${t.color}"><b>${SEGS[k].map(s=>esc(s.name)).join(" · ")}</b></div></div></a>`}).join("")}</div></section>
   <section class="blk"><h2 class="sec serif">한눈에 보기</h2><p class="sec-sub">색깔은 테마 코스입니다. 범례를 눌러 보고 싶은 테마만 골라 볼 수 있습니다.</p>
+    <div class="nearby"><button class="btn" id="nearBtn" onclick="findNearby()">📍 내 위치에서 가까운 곳 찾기</button><span class="hint">위치는 이 브라우저 안에서만 계산하고 서버로 보내지 않아요.</span></div>
+    <div id="nearby" aria-live="polite"></div>
     <div class="legend" id="legend">${KEYS.map(k=>`<button style="--c:${THEMES[k].color}" data-k="${k}">${THEMES[k].name} ${ROUTES[k].length}</button>`).join("")}</div>
     <div class="map" id="map"></div></section>
   <section class="blk"><h2 class="sec serif">두 고장의 분포</h2><p class="sec-sub">자료에 실린 장소를 행정 구역별로 나눠 봤습니다.</p>
     <div class="bar"><div style="width:${jj/DATA.length*100}%;background:#2c5b57">제주시 ${jj}곳</div><div style="width:${sg/DATA.length*100}%;background:#c26e00">서귀포시 ${sg}곳</div></div></section>
   </div>`;
-  const mm=mkMap($("#map"),DATA,{color:r=>THEMES[r.theme].color});
-  if(mm)$("#legend").onclick=e=>{const b=e.target.closest("button");if(!b)return;b.classList.toggle("off");const on=b.classList.contains("off")?false:true;
-    DATA.filter(r=>r.theme===b.dataset.k).forEach(r=>{const m=mm.markers[r.id];if(on)m.addTo(mm.map);else m.remove()})};
+  const mm=mkMap($("#map"),DATA,{color:r=>THEMES[r.theme].color,cluster:true});
+  if(mm)$("#legend").onclick=e=>{const b=e.target.closest("button");if(!b)return;b.classList.toggle("off");const on=!b.classList.contains("off");
+    DATA.filter(r=>r.theme===b.dataset.k).forEach(r=>{const m=mm.markers[r.id];if(mm.group){if(on)mm.group.addLayer(m);else mm.group.removeLayer(m)}else if(on)m.addTo(mm.map);else m.remove()})};
+}
+/* 내 위치에서 가까운 곳 (위치는 브라우저 안에서만 쓰고 서버로 보내지 않는다) */
+let userMarker=null;
+const fmtKm=d=>d<1?`${Math.round(d*10)*100}m`:`${d.toFixed(d<10?1:0)}km`;
+function findNearby(){
+  const btn=$("#nearBtn"),out=$("#nearby"),say=t=>{out.innerHTML=`<div class="nearbox"><p class="warn" style="margin:0">${t}</p></div>`};
+  if(!navigator.geolocation)return say("이 브라우저는 위치 기능을 지원하지 않아요.");
+  btn.disabled=true;btn.textContent="위치 확인 중…";
+  navigator.geolocation.getCurrentPosition(pos=>{
+    btn.disabled=false;btn.textContent="📍 내 위치에서 다시 찾기";
+    const me={lat:pos.coords.latitude,lng:pos.coords.longitude},list=DATA.map(r=>({r,d:hav(me,r)})).sort((a,b)=>a.d-b.d).slice(0,5),far=list[0].d>60;
+    out.innerHTML=`<div class="nearbox">${far?`<p class="warn">제주에서 멀리 떨어져 계신 것 같아요. 가장 가까운 곳도 약 ${list[0].d.toFixed(0)}km 거리예요.</p>`:""}<ol>`+
+      list.map(({r,d})=>`<li><span class="d">${fmtKm(d)}</span><b>${esc(r.name)}</b><small>${esc(r.area)} · ${esc(THEMES[r.theme].name)}</small><button class="sbtn" onclick="showOnHome(${r.id})">지도에서 보기</button><button class="sbtn" onclick="openPlace(${r.id})">이야기 읽기</button>${favBtn(r.id)}</li>`).join("")+`</ol></div>`;
+    const mm=curMM;if(mm){
+      if(userMarker)userMarker.remove();
+      userMarker=L.circleMarker([me.lat,me.lng],{radius:8,color:"#fff",weight:3,fillColor:"#1971c2",fillOpacity:1}).addTo(mm.map).bindTooltip("내 위치",{permanent:false});
+      const pts=list.map(x=>[x.r.lat,x.r.lng]);if(!far)pts.push([me.lat,me.lng]);
+      mm.map.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:14});
+    }
+  },err=>{
+    btn.disabled=false;btn.textContent="📍 내 위치에서 가까운 곳 찾기";
+    say(err.code===1?"위치 사용이 허용되지 않았어요. 주소창의 위치 권한을 허용한 뒤 다시 눌러 주세요.":"위치를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.");
+  },{timeout:10000,maximumAge:60000});
+}
+function showOnHome(id){
+  const mm=curMM;if(!mm)return;const m=mm.markers[id],r=byId(id);
+  $("#map").scrollIntoView({block:"center",behavior:"smooth"});
+  mm.map.setView([r.lat,r.lng],Math.max(mm.map.getZoom(),13));
+  if(mm.group&&mm.group.hasLayer(m))mm.group.zoomToShowLayer(m,()=>m.openPopup());else m.openPopup();
 }
 /* 화면: 카드 */
-function stopCard(r,i,l,k,mine){
-  const col=mine?"#e8590c":THEMES[r.theme].color,leg=i>0?`이전 장소에서 약 ${l[i-1].toFixed(1)}km`:"출발";
-  return `<article class="stop" id="s${r.id}" data-id="${r.id}"><div class="num" style="background:${col}">${i+1}</div><div><h3>${esc(r.name)}</h3>
+function stopCard(r,i,leg,mine){
+  const col=mine?"#e8590c":THEMES[r.theme].color;
+  return `<article class="stop${isDone(r.id)?" done":""}" id="s${r.id}" data-id="${r.id}"><div class="num" style="background:${col}">${i+1}</div><div style="min-width:0;flex:1"><h3>${esc(r.name)}</h3>
    <div class="meta">${esc(r.area)} · ${mine?esc(THEMES[r.theme].name)+" · ":""}${leg}</div><p>${esc(snip(r,mine?110:170))}</p>
    <div class="btns"><button class="sbtn" onclick="openPlace(${r.id})">이야기 읽기</button><button class="sbtn" onclick="focusPin(${r.id})">지도에서 보기</button>
-   ${mine?`<button class="sbtn" onclick="moveFav(${r.id},-1)" ${i?"":"disabled"}>▲</button><button class="sbtn" onclick="moveFav(${r.id},1)" ${i<favs.length-1?"":"disabled"}>▼</button><button class="sbtn" onclick="toggleFav(${r.id})">✕ 빼기</button>`:favBtn(r.id)}</div></div></article>`;
+   ${mine?`${doneBtn(r.id)}<button class="sbtn" onclick="moveFav(${r.id},-1)" ${i?"":"disabled"}>▲</button><button class="sbtn" onclick="moveFav(${r.id},1)" ${i<favs.length-1?"":"disabled"}>▼</button><button class="sbtn" onclick="toggleFav(${r.id})">✕ 빼기</button>`:favBtn(r.id)}</div>
+   ${mine?memoBox(r.id):""}</div></article>`;
 }
 function focusPin(id){
-  if(!cur||!window.__mk)return;const m=window.__mk[id],r=byId(id);
-  cur.setView([r.lat,r.lng],Math.max(cur.getZoom(),13));m.openPopup();
+  const mm=curMM;if(!mm)return;const m=mm.markers[id],r=byId(id);
+  mm.map.setView([r.lat,r.lng],Math.max(mm.map.getZoom(),13));
+  if(mm.group&&mm.group.hasLayer(m))mm.group.zoomToShowLayer(m,()=>m.openPopup());else m.openPopup();
   if(innerWidth<=900)$("#map").scrollIntoView({block:"center"});
   setActive(id);
 }
 function setActive(id,scroll){document.querySelectorAll(".stop").forEach(e=>e.classList.toggle("active",+e.dataset.id===id));if(scroll){const e=$("#s"+id);if(e)e.scrollIntoView({block:"center",behavior:"smooth"})}}
 /* 화면: 코스 */
-function viewCourse(k){
-  const t=THEMES[k],l=ROUTES[k],lg=legs(l),c1=l.filter(r=>r.city==="제주시").length,i=KEYS.indexOf(k),p=THEMES[KEYS[(i+KEYS.length-1)%KEYS.length]],n=THEMES[KEYS[(i+1)%KEYS.length]];
+function viewCourse(k,segNo){
+  const t=THEMES[k],S=SEGS[k],seg=S[segNo-1]||null,l=seg?seg.list:ROUTES[k],c1=l.filter(r=>r.city==="제주시").length,i=KEYS.indexOf(k),p=THEMES[KEYS[(i+KEYS.length-1)%KEYS.length]],n=THEMES[KEYS[(i+1)%KEYS.length]];
+  const facts=seg
+    ?`<span>📍 ${l.length}곳</span><span>구간 ${seg.no}/${S.length} · ${esc(seg.name)}</span><span>직선거리 약 ${segKm(seg).toFixed(1)}km</span><span>차로 이동 약 ${fmtMin(segKm(seg))}</span>`
+    :`<span>📍 ${l.length}곳</span>${S.length>1?`<span>${S.length}개 구간</span>`:""}<span>구간 내 직선거리 합계 약 ${courseKm(k).toFixed(1)}km</span><span>제주시 ${c1} · 서귀포시 ${l.length-c1}</span>`;
+  const tabs=S.length>1?`<div class="segtabs" role="navigation" aria-label="구간 선택"><a href="#/course/${k}" ${seg?"":'class="on" aria-current="page"'}>전체 <small>${ROUTES[k].length}곳</small></a>${S.map(s=>`<a href="#/course/${k}/${s.no}" ${s===seg?'class="on" aria-current="page"':""}>${s.no}. ${esc(s.name)} <small>${s.list.length}곳 · ${fmtMin(segKm(s))}</small></a>`).join("")}</div>
+    <p class="segnote">한 번에 걷기엔 먼 코스라 행정시와 서·동으로 구간을 나눴어요. 이동 시간은 직선거리 기준 차량 이동의 대략값입니다.</p>`:"";
+  let idx=0;
+  const cards=seg
+    ?l.map((r,j)=>stopCard(r,j,legTxt(legs(l),j))).join("")
+    :S.map(s=>{const lg=legs(s.list);return (S.length>1?`<h2 class="segh serif">${s.no}. ${esc(s.name)}<small>${s.list.length}곳 · 직선 약 ${segKm(s).toFixed(0)}km · 차로 약 ${fmtMin(segKm(s))}</small></h2>`:"")+s.list.map((r,j)=>stopCard(r,idx++,legTxt(lg,j))).join("")}).join("");
   $("#app").innerHTML=`<header class="chead" style="background:${t.color}"><div class="wrap"><a href="#/">← 홈</a><h1>${t.name}</h1><p>${esc(t.lede)}</p>
-   <div class="facts"><span>📍 ${l.length}곳</span><span>직선거리 합계 약 ${sum(lg).toFixed(1)}km</span><span>제주시 ${c1} · 서귀포시 ${l.length-c1}</span><span>${esc(l[0].name)} → ${esc(l[l.length-1].name)}</span></div></div></header>
-  <div class="wrap"><div class="cols"><div>${l.map((r,j)=>stopCard(r,j,lg,k)).join("")}</div><div class="mapcol"><div class="map" id="map"></div></div></div>
+   <div class="facts">${facts}</div></div></header>
+  <div class="wrap">${tabs}<div class="cols"><div>${cards}</div><div class="mapcol"><div class="map" id="map"></div></div></div>
   <div class="pager"><a href="#/course/${KEYS[(i+KEYS.length-1)%KEYS.length]}"><small>← 이전 코스</small>${p.name}</a><a class="r" href="#/course/${KEYS[(i+1)%KEYS.length]}"><small>다음 코스 →</small>${n.name}</a></div></div>`;
-  const mm=mkMap($("#map"),l,{numbered:true,color:()=>t.color,line:t.color,onPick:id=>setActive(id,true)});window.__mk=mm&&mm.markers;
+  mkMap($("#map"),l,{numbered:true,color:()=>t.color,line:t.color,segs:seg?[l]:S.map(s=>s.list),onPick:id=>setActive(id,true)});
 }
 /* 화면: 내 답사수첩 */
 function moveFav(id,d){const i=favs.indexOf(id),j=i+d;if(j<0||j>=favs.length)return;[favs[i],favs[j]]=[favs[j],favs[i]];saveFavs();viewMine()}
 function copyCourse(){
   const l=favs.map(byId),lg=legs(l);
-  const txt="나만의 제주 역사문화 답사 코스\n"+l.map((r,i)=>`${i+1}. ${r.name} (${r.addr})${i?` - 이전에서 약 ${lg[i-1].toFixed(1)}km`:""}`).join("\n")+`\n직선거리 합계 약 ${sum(lg).toFixed(1)}km`;
+  const txt="나만의 제주 역사문화 답사 코스\n"+l.map((r,i)=>`${i+1}. ${isDone(r.id)?"[다녀옴] ":""}${r.name} (${r.addr})${i?` - 이전에서 약 ${lg[i-1].toFixed(1)}km`:""}${memoOf(r.id)?`\n   메모: ${memoOf(r.id).replace(/\s+/g," ")}`:""}`).join("\n")+`\n직선거리 합계 약 ${sum(lg).toFixed(1)}km`;
   const done=()=>toast("코스를 클립보드에 복사했습니다");
   const fb=()=>{const a=document.createElement("textarea");a.value=txt;document.body.appendChild(a);a.select();try{document.execCommand("copy");done()}catch(e){toast("복사에 실패했습니다")}a.remove()};
   if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(txt).then(done,fb);else fb();
@@ -311,17 +423,17 @@ function copyCourse(){
 function viewMine(){
   destroyMap();const l=favs.map(byId),lg=legs(l);
   $("#app").innerHTML=`<header class="chead" style="background:#e8590c"><div class="wrap"><a href="#/">← 홈</a><h1>내 답사수첩</h1><p>담은 순서대로 이어진 나만의 답사 코스입니다. 순서를 바꾸면 지도의 선도 함께 바뀝니다.</p>
-   <div class="facts"><span>📍 ${l.length}곳</span><span>직선거리 합계 약 ${sum(lg).toFixed(1)}km</span></div></div></header>
-  <div class="wrap">`+(l.length?`<div class="cols" style="padding-bottom:20px"><div><div class="acts"><button class="sbtn" onclick="copyCourse()">코스를 글로 복사</button><button class="sbtn" onclick="if(confirm('수첩을 모두 비울까요?')){favs=[];saveFavs();updateFavUI();viewMine()}">전체 비우기</button></div>${l.map((r,j)=>stopCard(r,j,lg,null,true)).join("")}</div>
+   <div class="facts"><span>📍 ${l.length}곳</span><span>직선거리 합계 약 ${sum(lg).toFixed(1)}km</span><span id="progress"></span></div></div></header>
+  <div class="wrap">`+(l.length?`<div class="cols" style="padding-bottom:20px"><div><div class="acts"><button class="sbtn" onclick="copyCourse()">코스를 글로 복사</button><button class="sbtn" onclick="if(confirm('수첩을 모두 비울까요?')){favs=[];saveFavs();updateFavUI();viewMine()}">전체 비우기</button></div>${l.map((r,j)=>stopCard(r,j,legTxt(lg,j),true)).join("")}</div>
    <div class="mapcol"><div class="map" id="map"></div></div></div>`:
    `<div class="empty" style="margin:30px 0"><p style="font-size:18px;margin:0 0 6px">아직 담은 장소가 없습니다.</p>코스의 ☆ 수첩에 담기 버튼을 누르면 담은 순서대로 이곳에 코스가 만들어집니다.<br><br><a class="btn" href="#/">코스 둘러보기</a></div>`)+`</div>`;
-  if(l.length){const mm=mkMap($("#map"),l,{numbered:true,color:()=>"#e8590c",line:"#e8590c",onPick:id=>setActive(id,true)});window.__mk=mm&&mm.markers}
-  updateFavUI();
+  if(l.length)mkMap($("#map"),l,{numbered:true,color:()=>"#e8590c",line:"#e8590c",onPick:id=>setActive(id,true)});
+  updateFavUI();updateNotesUI();
 }
 /* 라우터 */
 function go(){
   closePlace();destroyMap();const h=location.hash.replace(/^#\/?/,"").split("/");
-  if(h[0]==="course"&&THEMES[h[1]])viewCourse(h[1]);else if(h[0]==="mine")viewMine();else viewHome();
+  if(h[0]==="course"&&THEMES[h[1]])viewCourse(h[1],parseInt(h[2])||0);else if(h[0]==="mine")viewMine();else viewHome();
   const cur2=h[0]==="course"?"course":h[0]==="mine"?"mine":"home";
   document.querySelectorAll("nav a[data-nav]").forEach(a=>a.classList.toggle("on",a.dataset.nav===cur2));
   if(h[0]==="course")document.querySelector('nav a[data-nav="course"]').href="#/course/"+h[1];
@@ -333,7 +445,7 @@ let bound=false;
 function boot(rows){
   DATA=rows;
   DATA.forEach(r=>{r.city=r.addr.split(" ")[1]||"";r.area=r.addr.split(" ").slice(1,3).join(" ")});
-  KEYS.forEach(k=>ROUTES[k]=route(DATA.filter(r=>r.theme===k)));
+  KEYS.forEach(k=>{SEGS[k]=segment(DATA.filter(r=>r.theme===k));ROUTES[k]=SEGS[k].flatMap(s=>s.list)});
   favs=favs.filter(i=>byId(i));
   if(!bound){addEventListener("hashchange",go);bound=true}
   go();

@@ -6,6 +6,8 @@
 <title>제주 역사문화 정보 조회</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <style>
 #lmap{height:440px;border-radius:6px;z-index:0}
 .pin{width:24px;height:24px;border-radius:50% 50% 50% 0;background:var(--accent);border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;position:relative}
@@ -76,6 +78,8 @@ dt{color:var(--muted)}dd{margin:0;word-break:break-word}
 .map{padding:10px}
 .map h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
 svg{width:100%;height:auto;display:block;background:var(--bg);border-radius:6px}
+.mc{width:38px;height:38px;border-radius:50%;background:#16363d;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+.mc span{color:#fff;font:700 13px/1 sans-serif}
 .back{margin-top:4px;font-size:14px}.back a{color:var(--accent);font-weight:600}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 </style>
@@ -129,7 +133,7 @@ function render(fit){
   renderCourse();
   drawMap(fit===true);
 }
-let map=null,markers={},route=null;
+let map=null,markers={},route=null,group=null;
 const icon=id=>{const s=id===sel,n=favs.indexOf(id)+1;return L.divIcon({className:"",html:`<div class="pin${n?" fav":""}${s?" sel":""}"><span>${n||""}</span></div>`,iconSize:s?[30,30]:[24,24],iconAnchor:s?[8,30]:[6,24],popupAnchor:[0,-26]})};
 let favs=[];try{favs=JSON.parse(localStorage.getItem("jejuFavs")||"[]")}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem("jejuFavs",JSON.stringify(favs))}catch(e){}};
@@ -160,11 +164,13 @@ function drawMap(fit){
   if(!map){
     map=L.map("lmap").setView([33.38,126.55],9);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+    /* 핀이 겹치는 곳은 숫자로 묶고, 확대하면 풀린다 */
+    group=L.markerClusterGroup?L.markerClusterGroup({showCoverageOnHover:false,maxClusterRadius:46,iconCreateFunction:c=>L.divIcon({className:"",html:`<div class="mc"><span>${c.getChildCount()}</span></div>`,iconSize:[38,38]})}).addTo(map):null;
     DATA.forEach(r=>{const m=L.marker([r.lat,r.lng],{icon:icon(r.id),title:r.name}).bindPopup(()=>popHtml(r));m.on("click",()=>{if(sel!==r.id)show(r.id,true)});markers[r.id]=m});
   }
   const ids=new Set(view.map(r=>r.id));
-  DATA.forEach(r=>{const m=markers[r.id],on=ids.has(r.id)||favs.includes(r.id);
-    if(on&&!map.hasLayer(m))m.addTo(map);else if(!on&&map.hasLayer(m))m.remove();
+  DATA.forEach(r=>{const m=markers[r.id],on=ids.has(r.id)||favs.includes(r.id),has=group?group.hasLayer(m):map.hasLayer(m);
+    if(on&&!has){if(group)group.addLayer(m);else m.addTo(map)}else if(!on&&has){if(group)group.removeLayer(m);else m.remove()}
     m.setIcon(icon(r.id));m.setZIndexOffset(r.id===sel?1000:favs.includes(r.id)?500:0)});
   if(route){route.remove();route=null}
   if(favs.length>1)route=L.polyline(favs.map(i=>{const r=byId(i);return[r.lat,r.lng]}),{color:"#f08c00",weight:4,opacity:.9,dashArray:"9 8"}).addTo(map);
@@ -183,7 +189,7 @@ function show(id,fromMap){
    (r.ref&&r.ref!=="해당없음"?`<div class="body"><b>참고문헌</b>\n${esc(r.ref)}</div>`:"");
   render();
   const m=markers[id];
-  if(m&&!fromMap){map.setView([r.lat,r.lng],Math.max(map.getZoom(),13));m.openPopup()}
+  if(m&&!fromMap){map.setView([r.lat,r.lng],Math.max(map.getZoom(),13));if(group&&group.hasLayer(m))group.zoomToShowLayer(m,()=>m.openPopup());else m.openPopup()}
   const tr=document.querySelector(`#rows tr[data-id="${id}"]`);if(tr)tr.scrollIntoView({block:"nearest"});
 }
 $("#rows").onclick=e=>{const t=e.target.closest("tr[data-id]");if(t)show(+t.dataset.id)};
@@ -213,7 +219,7 @@ function showPractice(reason){
 }
 function apply(rows){
   DATA=rows;prep();favs=favs.filter(i=>byId(i));
-  if(map){map.remove();map=null;markers={};route=null}
+  if(map){map.remove();map=null;markers={};route=null;group=null}
   $("#fCat").length=1;$("#fD1").length=1;fillSel();render(true);
 }
 /* quiet=true: 연습 모드에서 화면을 유지한 채 API 재연결만 시도 */
