@@ -102,4 +102,4 @@ legacy/         API 도입 전 파일 방식 HTML (참고용)
 ## 참고
 - 데이터: 제주특별자치도 제주역사문화 일반정보·위치정보 (데이터 기준일 2022-12-09)
 - 코스 경로는 서쪽 끝에서 시작해 가까운 곳부터 이은 직선 경로이며 실제 도로 거리와 다릅니다.
-- 지도: © OpenStreetMap contributors © CARTO, 구현은 Leaflet
+- 지도: 배경 지도 © OpenStreetMap contributors (키가 필요 없는 OSM 표준 타일), 구현은 Leaflet

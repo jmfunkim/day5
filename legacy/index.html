@@ -121,7 +121,7 @@ footer a{color:#ffc58f}
 <main id="app"></main>
 <footer><div class="wrap">
   자료: 제주특별자치도 「제주역사문화 위치정보」·「제주역사문화 일반정보」 (데이터 기준일 2022-12-09). 각 장소의 원문은
-  <a href="https://www.jeju.go.kr/culture/digitalContents/directory.htm" target="_blank" rel="noopener">제주 문화 디렉토리</a>에서 볼 수 있습니다. 지도 © OpenStreetMap contributors © CARTO.<br>
+  <a href="https://www.jeju.go.kr/culture/digitalContents/directory.htm" target="_blank" rel="noopener">제주 문화 디렉토리</a>에서 볼 수 있습니다. 지도 © OpenStreetMap contributors.<br>
   코스는 장소 성격에 따라 묶고 가장 서쪽 지점부터 가까운 곳 순으로 이은 직선 경로이며, 실제 도로 거리와 다릅니다.
 </div></footer>
 <div id="modal"></div>
@@ -174,7 +174,7 @@ function popup(r){return `<div class="pop"><b>${esc(r.name)}</b><div class="m">$
 function mkMap(el,list,o){
   if(typeof L==="undefined"){el.innerHTML='<div class="nomap">지도를 불러오지 못했습니다.<br>인터넷 연결을 확인해 주세요.</div>';return null}
   const map=L.map(el,{scrollWheelZoom:false}).setView([33.38,126.55],9),markers={};
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:"&copy; OpenStreetMap contributors &copy; CARTO"}).addTo(map);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
   list.forEach((r,i)=>{const m=L.marker([r.lat,r.lng],{icon:pin(o.color(r),o.numbered?i+1:""),title:r.name}).addTo(map).bindPopup(()=>popup(r),{autoPanPadding:[30,30]});
     m.on("click",()=>o.onPick&&o.onPick(r.id));markers[r.id]=m});
   const ll=list.map(r=>[r.lat,r.lng]);
