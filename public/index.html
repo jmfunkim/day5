@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>제주 역사문화 탐방기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--bg:#f6f3ee;--card:#fffdf9;--text:#26211c;--muted:#7a6f63;--line:#e6dfd4;--basalt:#2b2f33;--accent:#e8590c;--accent-bg:#fdebdd;--hero1:#16363d;--hero2:#2c5b57}
+@media (prefers-color-scheme:dark){:root{--bg:#171512;--card:#211e1a;--text:#ece6dc;--muted:#a89d8f;--line:#38322b;--basalt:#0e0d0b;--accent:#ff8a3d;--accent-bg:#3a2415;--hero1:#0f2327;--hero2:#1d3d3a}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font:16px/1.7 "Malgun Gothic",system-ui,sans-serif;background:var(--bg);color:var(--text)}
+h1,h2,h3,.serif{font-family:"Noto Serif KR","Batang","Times New Roman",serif;line-height:1.3}
+a{color:inherit}
+button{font:inherit;cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+/* nav */
+nav{position:sticky;top:0;z-index:1000;background:var(--basalt);color:#f3ede3}
+nav .wrap{display:flex;align-items:center;gap:6px;height:54px}
+nav .logo{font-family:"Noto Serif KR",serif;font-weight:800;font-size:17px;text-decoration:none;margin-right:auto}
+nav a.l{padding:6px 12px;border-radius:6px;text-decoration:none;font-size:14px;color:#d9d1c4}
+nav a.l:hover,nav a.l.on{background:rgba(255,255,255,.12);color:#fff}
+nav .badge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--accent);color:#fff;font-size:12px;text-align:center}
+@media (max-width:640px){nav a.l.hide{display:none}}
+/* hero */
+.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2));color:#f6efe4;padding:72px 0 56px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-80px;bottom:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(255,146,43,.35),transparent 70%)}
+.hero .eyebrow{letter-spacing:.2em;font-size:13px;color:#ffc58f}
+.hero h1{font-size:clamp(34px,6vw,60px);margin:8px 0 14px;font-weight:800}
+.hero p{max-width:560px;font-size:17px;color:#d8e3df;margin:0 0 26px}
+.stats{display:flex;flex-wrap:wrap;gap:12px 36px;margin-bottom:28px}
+.stats div b{display:block;font:800 30px/1.1 "Noto Serif KR",serif;color:#fff}
+.stats div span{font-size:13px;color:#b9cbc6}
+.btn{display:inline-block;padding:11px 20px;border-radius:8px;border:0;background:var(--accent);color:#fff;font-weight:700;text-decoration:none}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.5);margin-left:8px}
+section.blk{padding:48px 0 8px}
+h2.sec{font-size:26px;margin:0 0 6px}
+.sec-sub{color:var(--muted);margin:0 0 22px}
+/* cards */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.ccard{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-decoration:none;transition:transform .15s,box-shadow .15s}
+.ccard:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.ccard .top{height:8px}
+.ccard .in{padding:16px 18px 18px}
+.ccard h3{margin:0 0 4px;font-size:19px}
+.ccard .m{font-size:13px;color:var(--muted);margin-bottom:8px}
+.ccard p{margin:0;font-size:14px;color:var(--muted)}
+.ccard .via{margin-top:10px;font-size:13px}
+.chip{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12px;color:#fff}
+.today{display:grid;grid-template-columns:1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+.today h3{font-size:24px;margin:6px 0}
+.today p{color:var(--muted);margin:8px 0 14px}
+.bar{display:flex;height:34px;border-radius:8px;overflow:hidden;font-size:13px;color:#fff;font-weight:700}
+.bar div{display:flex;align-items:center;justify-content:center}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.legend button{border:2px solid var(--c);background:var(--c);color:#fff;padding:3px 12px;border-radius:99px;font-size:13px}
+.legend button.off{background:transparent;color:var(--muted);border-color:var(--line)}
+.map{height:520px;border-radius:12px;border:1px solid var(--line);z-index:0}
+.nomap{padding:60px 20px;text-align:center;color:var(--muted)}
+.pin{width:26px;height:26px;border-radius:50% 50% 50% 0;border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 1px 4px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+.pin span{transform:rotate(45deg);color:#fff;font:700 12px/1 sans-serif}
+.pin.dot::after{content:"";width:8px;height:8px;border-radius:50%;background:#fff}
+.pop{font:13px/1.5 "Malgun Gothic",sans-serif;max-width:250px;color:#26211c}
+.pop b{font-size:15px}.pop .m{color:#777;margin-bottom:4px}.pop p{margin:4px 0 8px}
+.pop button{margin-right:5px}
+.sbtn,.favbtn{padding:5px 12px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:13px}
+.sbtn:hover{border-color:var(--accent)}
+.favbtn{border-color:#f08c00;color:#c26e00;font-weight:600}
+.favbtn.on{background:#f08c00;color:#fff}
+.sbtn:disabled{opacity:.35;cursor:default}
+/* course page */
+.chead{color:#fff;padding:44px 0 34px}
+.chead a{color:rgba(255,255,255,.8);font-size:14px;text-decoration:none}
+.chead h1{font-size:clamp(28px,5vw,44px);margin:8px 0 10px}
+.chead p{max-width:680px;margin:0 0 14px;color:rgba(255,255,255,.92)}
+.chead .facts{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:14px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;padding:28px 0 20px;align-items:start}
+@media (max-width:900px){.cols{grid-template-columns:1fr}.cols .mapcol{order:-1;position:static!important}}
+.mapcol{position:sticky;top:68px}
+.mapcol .map{height:calc(100vh - 100px);min-height:380px;max-height:640px}
+.stop{display:flex;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;scroll-margin-top:70px}
+.stop.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-bg)}
+.stop .num{flex:none;width:34px;height:34px;border-radius:50%;color:#fff;font:700 15px/34px sans-serif;text-align:center}
+.stop h3{margin:0;font-size:19px}
+.stop .meta{font-size:13px;color:var(--muted);margin:2px 0 6px}
+.stop p{margin:0 0 10px;font-size:14.5px}
+.stop .btns{display:flex;flex-wrap:wrap;gap:6px}
+.pager{display:flex;justify-content:space-between;gap:12px;padding:24px 0 48px}
+.pager a{flex:1;padding:14px 18px;background:var(--card);border:1px solid var(--line);border-radius:10px;text-decoration:none}
+.pager a small{display:block;color:var(--muted)}
+.pager a.r{text-align:right}
+.empty{padding:50px 20px;text-align:center;color:var(--muted);background:var(--card);border:1px dashed var(--line);border-radius:12px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+/* modal */
+#modal{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 14px}
+#modal.on{display:flex}
+.sheet{background:var(--card);max-width:720px;width:100%;border-radius:14px;padding:26px 28px 28px;position:relative}
+.sheet h2{margin:0 0 4px;font-size:26px}
+.sheet .x{position:absolute;right:14px;top:12px;border:0;background:none;font-size:26px;color:var(--muted)}
+.sheet dl{display:grid;grid-template-columns:72px 1fr;gap:3px 12px;font-size:14px;margin:14px 0}
+.sheet dt{color:var(--muted)}.sheet dd{margin:0;word-break:break-word}
+.sheet h4{margin:18px 0 4px;font-size:14px;color:var(--muted)}
+.sheet .txt{white-space:pre-wrap;font-size:15px}
+footer{margin-top:40px;background:var(--basalt);color:#b9b0a2;padding:28px 0;font-size:13px}
+footer a{color:#ffc58f}
+.practice{position:sticky;top:54px;z-index:999;background:#ffe066;color:#4a3800;padding:8px 0;font-size:14px;border-bottom:1px solid #e0b800}
+.practice[hidden]{display:none}
+.practice b{background:#4a3800;color:#ffe066;border-radius:4px;padding:1px 8px;margin-right:6px}
+.practice small{opacity:.8}
+.practice button{font:inherit;font-size:13px;margin-left:6px;padding:2px 10px;border:1px solid #4a3800;border-radius:6px;background:transparent;color:inherit;cursor:pointer}
+.spinner{width:34px;height:34px;margin:0 auto 12px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 18px;border-radius:99px;font-size:14px;z-index:3000}
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <a class="logo" href="#/">제주 역사문화 탐방기</a>
+  <a class="l" href="#/" data-nav="home">홈</a>
+  <a class="l" href="#/course/sea" data-nav="course">테마 코스</a>
+  <a class="l" href="#/mine" data-nav="mine">내 답사수첩<span class="badge" id="badge" hidden></span></a>
+  <a class="l hide" href="search.html">자료 조회</a>
+</div></nav>
+<div class="practice" id="practice" hidden></div>
+<main id="app"></main>
+<footer><div class="wrap">
+  자료: 제주특별자치도 「제주역사문화 위치정보」·「제주역사문화 일반정보」 (데이터 기준일 2022-12-09). 각 장소의 원문은
+  <a href="https://www.jeju.go.kr/culture/digitalContents/directory.htm" target="_blank" rel="noopener">제주 문화 디렉토리</a>에서 볼 수 있습니다. 지도 © OpenStreetMap contributors © CARTO.<br>
+  코스는 장소 성격에 따라 묶고 가장 서쪽 지점부터 가까운 곳 순으로 이은 직선 경로이며, 실제 도로 거리와 다릅니다.
+</div></footer>
+<div id="modal"></div>
+<script>
+let DATA=[];
+const THEMES={
+ sea:{name:"바다와 포구",color:"#1f7ea1",lede:"해녀와 어부가 드나들던 포구, 길을 밝힌 등대와 도대불, 소금을 굽던 돌염전까지. 섬 사람의 삶이 바다와 맞닿은 자리를 따라갑니다."},
+ oreum:{name:"오름과 봉우리",color:"#5f9a2a",lede:"오름은 제주의 마을과 들판을 내려다보는 자리입니다. 데이터에 실린 오름과 봉우리를 차례로 오릅니다."},
+ eco:{name:"숲·습지·철새",color:"#0f9d8a",lede:"고산습지와 비자림, 철새 도래지와 반딧불이 보호구역. 사람보다 오래 이 땅을 지켜온 생태 공간을 모았습니다."},
+ water:{name:"물과 하천",color:"#4b6fd6",lede:"물이 귀한 섬에서 샘과 하천은 마을이 생기는 이유였습니다. 물터와 하천, 폭포와 계곡을 따라갑니다."},
+ faith:{name:"신당과 절터",color:"#8e5bb5",lede:"마을을 지키는 본향당과 신당, 오래된 절터와 석탑. 제주 사람들이 기대어 온 믿음의 자리를 찾아갑니다."},
+ fort:{name:"성곽과 근대의 흔적",color:"#b5543a",lede:"읍성과 진성, 일제강점기의 진지동굴, 근대의 관청과 서원까지. 섬을 지키고 다스리던 기록을 따라갑니다."},
+ life:{name:"고분과 삶의 터",color:"#c78a1b",lede:"고인돌과 옹관묘, 패총과 동굴 유적에서 시장과 음식 문화까지. 제주 사람들이 살아온 오랜 시간을 짚어봅니다."}
+};
+const KEYS=Object.keys(THEMES);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const byId=id=>DATA.find(r=>r.id===id);
+function snip(r,n){let t=(r.abs&&r.abs.length>=40?r.abs:r.body)||"";t=t.replace(/\s+/g," ").trim();return t.length>n?t.slice(0,n)+"…":t}
+function hav(a,b){const R=6371,t=x=>x*Math.PI/180,h=Math.sin(t(b.lat-a.lat)/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(t(b.lng-a.lng)/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function legs(l){return l.slice(1).map((r,i)=>hav(l[i],r))}
+const sum=a=>a.reduce((x,y)=>x+y,0);
+function route(list){ // 서쪽 끝에서 시작해 가까운 곳부터
+  const left=[...list].sort((a,b)=>a.lng-b.lng),out=[left.shift()];
+  while(left.length){const c=out[out.length-1];let bi=0,bd=1e9;left.forEach((r,i)=>{const d=hav(c,r);if(d<bd){bd=d;bi=i}});out.push(left.splice(bi,1)[0])}
+  return out;
+}
+const ROUTES={};
+/* 찜 (자료 조회 화면과 같은 저장 키 공유) */
+let favs=[];try{favs=JSON.parse(localStorage.getItem("jejuFavs")||"[]")}catch(e){}
+const saveFavs=()=>{try{localStorage.setItem("jejuFavs",JSON.stringify(favs))}catch(e){}};
+const favLabel=id=>favs.includes(id)?"★ 수첩에 담김":"☆ 수첩에 담기";
+const favBtn=id=>`<button class="favbtn${favs.includes(id)?" on":""}" data-fav="${id}" onclick="toggleFav(${id})">${favLabel(id)}</button>`;
+function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
+function updateFavUI(){
+  document.querySelectorAll("[data-fav]").forEach(b=>{const id=+b.dataset.fav;b.textContent=favLabel(id);b.classList.toggle("on",favs.includes(id))});
+  const bd=$("#badge");bd.hidden=!favs.length;bd.textContent=favs.length;
+}
+function toggleFav(id){
+  const i=favs.indexOf(id);if(i>=0)favs.splice(i,1);else favs.push(id);
+  saveFavs();updateFavUI();if(isMine())viewMine();
+}
+const isMine=()=>location.hash.startsWith("#/mine");
+/* 지도 */
+let cur=null;
+function destroyMap(){if(cur){cur.remove();cur=null}}
+function pin(color,num){return L.divIcon({className:"",html:`<div class="pin${num===""?" dot":""}" style="background:${color}"><span>${num}</span></div>`,iconSize:[26,26],iconAnchor:[7,26],popupAnchor:[6,-26]})}
+function popup(r){return `<div class="pop"><b>${esc(r.name)}</b><div class="m">${esc(THEMES[r.theme].name)} · ${esc(r.area)}</div><p>${esc(snip(r,90))}</p><button class="sbtn" onclick="openPlace(${r.id})">이야기 읽기</button>${favBtn(r.id)}</div>`}
+function mkMap(el,list,o){
+  if(typeof L==="undefined"){el.innerHTML='<div class="nomap">지도를 불러오지 못했습니다.<br>인터넷 연결을 확인해 주세요.</div>';return null}
+  const map=L.map(el,{scrollWheelZoom:false}).setView([33.38,126.55],9),markers={};
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{maxZoom:19,subdomains:"abcd",attribution:"&copy; OpenStreetMap contributors &copy; CARTO"}).addTo(map);
+  list.forEach((r,i)=>{const m=L.marker([r.lat,r.lng],{icon:pin(o.color(r),o.numbered?i+1:""),title:r.name}).addTo(map).bindPopup(()=>popup(r),{autoPanPadding:[30,30]});
+    m.on("click",()=>o.onPick&&o.onPick(r.id));markers[r.id]=m});
+  const ll=list.map(r=>[r.lat,r.lng]);
+  if(o.line&&ll.length>1)L.polyline(ll,{color:o.line,weight:4,opacity:.9,dashArray:"9 8"}).addTo(map);
+  if(ll.length)map.fitBounds(L.latLngBounds(ll),{padding:[34,34],maxZoom:13});
+  cur=map;return {map,markers};
+}
+/* 상세 모달 */
+function openPlace(id){
+  const r=byId(id),t=THEMES[r.theme],row=(k,v)=>v&&v!=="해당없음"?`<dt>${k}</dt><dd>${v}</dd>`:"";
+  $("#modal").innerHTML=`<div class="sheet"><button class="x" onclick="closePlace()" aria-label="닫기">×</button>
+   <span class="chip" style="background:${t.color}">${esc(t.name)}</span>
+   <h2>${esc(r.name)}</h2><div style="color:var(--muted);font-size:14px">${esc(r.addr)}</div>
+   <div style="margin:12px 0">${favBtn(r.id)} ${r.link?`<a class="sbtn" style="text-decoration:none;display:inline-block" href="${esc(r.link)}" target="_blank" rel="noopener">원문 보기 ↗</a>`:""}</div>
+   <dl>${row("자료 제목",esc(r.title))}${row("부제",esc(r.sub))}${row("저작자",esc(r.author))}${row("발행자",esc(r.pub))}${row("발행일",esc(r.date))}${row("분류",esc(r.cat+" · "+r.d1))}${row("좌표",r.lat+", "+r.lng)}</dl>
+   ${r.abs&&r.abs!=="해당없음"?`<h4>초록</h4><div class="txt">${esc(r.abs)}</div>`:""}
+   ${r.body?`<h4>내용</h4><div class="txt">${esc(r.body)}</div>`:""}
+   ${r.ref&&r.ref!=="해당없음"?`<h4>참고문헌</h4><div class="txt" style="font-size:13px;color:var(--muted)">${esc(r.ref)}</div>`:""}</div>`;
+  $("#modal").classList.add("on");document.body.style.overflow="hidden";$("#modal").scrollTop=0;
+}
+function closePlace(){$("#modal").classList.remove("on");document.body.style.overflow=""}
+$("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closePlace()});
+addEventListener("keydown",e=>{if(e.key==="Escape")closePlace()});
+/* 화면: 홈 */
+function viewHome(){
+  const tot=sum(KEYS.map(k=>sum(legs(ROUTES[k])))),jj=DATA.filter(r=>r.city==="제주시").length,sg=DATA.length-jj;
+  const td=DATA[Math.floor(Date.now()/864e5)%DATA.length],tt=THEMES[td.theme];
+  $("#app").innerHTML=`
+  <header class="hero"><div class="wrap">
+    <div class="eyebrow">JEJU HISTORY &amp; CULTURE TRAIL</div>
+    <h1>돌담 너머,<br>제주의 시간을 걷다</h1>
+    <p>제주특별자치도가 공개한 ${DATA.length}곳의 역사문화 자료를 일곱 갈래의 탐방 코스로 엮었습니다. 코스를 따라 걷고, 마음에 드는 곳은 수첩에 담아 나만의 답사 길을 만들어 보세요.</p>
+    <div class="stats"><div><b>${DATA.length}</b><span>역사문화 장소</span></div><div><b>${KEYS.length}</b><span>테마 코스</span></div><div><b>${jj} / ${sg}</b><span>제주시 / 서귀포시</span></div></div>
+    <a class="btn" href="#course-list" onclick="document.getElementById('course-list').scrollIntoView();return false">코스 둘러보기</a><a class="btn ghost" href="#/mine">내 답사수첩 열기</a>
+  </div></header>
+  <div class="wrap">
+  <section class="blk"><h2 class="sec serif">오늘의 장소</h2><p class="sec-sub">매일 한 곳씩, 데이터 속 이야기를 소개합니다.</p>
+    <div class="today"><span class="chip" style="background:${tt.color};justify-self:start">${esc(tt.name)}</span><h3>${esc(td.name)}</h3>
+    <div style="color:var(--muted);font-size:14px">${esc(td.addr)}</div><p>${esc(snip(td,200))}</p>
+    <div class="acts" style="margin:0"><button class="sbtn" onclick="openPlace(${td.id})">이야기 읽기</button>${favBtn(td.id)}<a class="sbtn" style="text-decoration:none" href="#/course/${td.theme}">이 장소가 있는 코스</a></div></div></section>
+  <section class="blk" id="course-list"><h2 class="sec serif">테마 코스</h2><p class="sec-sub">장소의 성격에 따라 묶고, 서쪽에서 동쪽으로 가까운 곳부터 이었습니다.</p>
+    <div class="grid">${KEYS.map(k=>{const l=ROUTES[k],t=THEMES[k],c1=l.filter(r=>r.city==="제주시").length;
+      return `<a class="ccard" href="#/course/${k}"><div class="top" style="background:${t.color}"></div><div class="in"><h3>${t.name}</h3>
+      <div class="m">${l.length}곳 · 직선 약 ${sum(legs(l)).toFixed(0)}km · 제주시 ${c1} / 서귀포시 ${l.length-c1}</div>
+      <p>${esc(t.lede.split(".")[0])}.</p><div class="via"><b style="color:${t.color}">${esc(l[0].name)}</b> → … → <b style="color:${t.color}">${esc(l[l.length-1].name)}</b></div></div></a>`}).join("")}</div></section>
+  <section class="blk"><h2 class="sec serif">한눈에 보기</h2><p class="sec-sub">색깔은 테마 코스입니다. 범례를 눌러 보고 싶은 테마만 골라 볼 수 있습니다.</p>
+    <div class="legend" id="legend">${KEYS.map(k=>`<button style="--c:${THEMES[k].color}" data-k="${k}">${THEMES[k].name} ${ROUTES[k].length}</button>`).join("")}</div>
+    <div class="map" id="map"></div></section>
+  <section class="blk"><h2 class="sec serif">두 고장의 분포</h2><p class="sec-sub">자료에 실린 장소를 행정 구역별로 나눠 봤습니다.</p>
+    <div class="bar"><div style="width:${jj/DATA.length*100}%;background:#2c5b57">제주시 ${jj}곳</div><div style="width:${sg/DATA.length*100}%;background:#c26e00">서귀포시 ${sg}곳</div></div></section>
+  </div>`;
+  const mm=mkMap($("#map"),DATA,{color:r=>THEMES[r.theme].color});
+  if(mm)$("#legend").onclick=e=>{const b=e.target.closest("button");if(!b)return;b.classList.toggle("off");const on=b.classList.contains("off")?false:true;
+    DATA.filter(r=>r.theme===b.dataset.k).forEach(r=>{const m=mm.markers[r.id];if(on)m.addTo(mm.map);else m.remove()})};
+}
+/* 화면: 카드 */
+function stopCard(r,i,l,k,mine){
+  const col=mine?"#e8590c":THEMES[r.theme].color,leg=i>0?`이전 장소에서 약 ${l[i-1].toFixed(1)}km`:"출발";
+  return `<article class="stop" id="s${r.id}" data-id="${r.id}"><div class="num" style="background:${col}">${i+1}</div><div><h3>${esc(r.name)}</h3>
+   <div class="meta">${esc(r.area)} · ${mine?esc(THEMES[r.theme].name)+" · ":""}${leg}</div><p>${esc(snip(r,mine?110:170))}</p>
+   <div class="btns"><button class="sbtn" onclick="openPlace(${r.id})">이야기 읽기</button><button class="sbtn" onclick="focusPin(${r.id})">지도에서 보기</button>
+   ${mine?`<button class="sbtn" onclick="moveFav(${r.id},-1)" ${i?"":"disabled"}>▲</button><button class="sbtn" onclick="moveFav(${r.id},1)" ${i<favs.length-1?"":"disabled"}>▼</button><button class="sbtn" onclick="toggleFav(${r.id})">✕ 빼기</button>`:favBtn(r.id)}</div></div></article>`;
+}
+function focusPin(id){
+  if(!cur||!window.__mk)return;const m=window.__mk[id],r=byId(id);
+  cur.setView([r.lat,r.lng],Math.max(cur.getZoom(),13));m.openPopup();
+  if(innerWidth<=900)$("#map").scrollIntoView({block:"center"});
+  setActive(id);
+}
+function setActive(id,scroll){document.querySelectorAll(".stop").forEach(e=>e.classList.toggle("active",+e.dataset.id===id));if(scroll){const e=$("#s"+id);if(e)e.scrollIntoView({block:"center",behavior:"smooth"})}}
+/* 화면: 코스 */
+function viewCourse(k){
+  const t=THEMES[k],l=ROUTES[k],lg=legs(l),c1=l.filter(r=>r.city==="제주시").length,i=KEYS.indexOf(k),p=THEMES[KEYS[(i+KEYS.length-1)%KEYS.length]],n=THEMES[KEYS[(i+1)%KEYS.length]];
+  $("#app").innerHTML=`<header class="chead" style="background:${t.color}"><div class="wrap"><a href="#/">← 홈</a><h1>${t.name}</h1><p>${esc(t.lede)}</p>
+   <div class="facts"><span>📍 ${l.length}곳</span><span>직선거리 합계 약 ${sum(lg).toFixed(1)}km</span><span>제주시 ${c1} · 서귀포시 ${l.length-c1}</span><span>${esc(l[0].name)} → ${esc(l[l.length-1].name)}</span></div></div></header>
+  <div class="wrap"><div class="cols"><div>${l.map((r,j)=>stopCard(r,j,lg,k)).join("")}</div><div class="mapcol"><div class="map" id="map"></div></div></div>
+  <div class="pager"><a href="#/course/${KEYS[(i+KEYS.length-1)%KEYS.length]}"><small>← 이전 코스</small>${p.name}</a><a class="r" href="#/course/${KEYS[(i+1)%KEYS.length]}"><small>다음 코스 →</small>${n.name}</a></div></div>`;
+  const mm=mkMap($("#map"),l,{numbered:true,color:()=>t.color,line:t.color,onPick:id=>setActive(id,true)});window.__mk=mm&&mm.markers;
+}
+/* 화면: 내 답사수첩 */
+function moveFav(id,d){const i=favs.indexOf(id),j=i+d;if(j<0||j>=favs.length)return;[favs[i],favs[j]]=[favs[j],favs[i]];saveFavs();viewMine()}
+function copyCourse(){
+  const l=favs.map(byId),lg=legs(l);
+  const txt="나만의 제주 역사문화 답사 코스\n"+l.map((r,i)=>`${i+1}. ${r.name} (${r.addr})${i?` - 이전에서 약 ${lg[i-1].toFixed(1)}km`:""}`).join("\n")+`\n직선거리 합계 약 ${sum(lg).toFixed(1)}km`;
+  const done=()=>toast("코스를 클립보드에 복사했습니다");
+  const fb=()=>{const a=document.createElement("textarea");a.value=txt;document.body.appendChild(a);a.select();try{document.execCommand("copy");done()}catch(e){toast("복사에 실패했습니다")}a.remove()};
+  if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(txt).then(done,fb);else fb();
+}
+function viewMine(){
+  destroyMap();const l=favs.map(byId),lg=legs(l);
+  $("#app").innerHTML=`<header class="chead" style="background:#e8590c"><div class="wrap"><a href="#/">← 홈</a><h1>내 답사수첩</h1><p>찜한 순서대로 이어진 나만의 답사 코스입니다. 순서를 바꾸면 지도의 선도 함께 바뀝니다.</p>
+   <div class="facts"><span>📍 ${l.length}곳</span><span>직선거리 합계 약 ${sum(lg).toFixed(1)}km</span></div></div></header>
+  <div class="wrap">`+(l.length?`<div class="cols" style="padding-bottom:20px"><div><div class="acts"><button class="sbtn" onclick="copyCourse()">코스를 글로 복사</button><button class="sbtn" onclick="if(confirm('수첩을 모두 비울까요?')){favs=[];saveFavs();updateFavUI();viewMine()}">전체 비우기</button></div>${l.map((r,j)=>stopCard(r,j,lg,null,true)).join("")}</div>
+   <div class="mapcol"><div class="map" id="map"></div></div></div>`:
+   `<div class="empty" style="margin:30px 0"><p style="font-size:18px;margin:0 0 6px">아직 담은 장소가 없습니다.</p>코스의 ☆ 수첩에 담기 버튼을 누르면 담은 순서대로 이곳에 코스가 만들어집니다.<br><br><a class="btn" href="#/">코스 둘러보기</a></div>`)+`</div>`;
+  if(l.length){const mm=mkMap($("#map"),l,{numbered:true,color:()=>"#e8590c",line:"#e8590c",onPick:id=>setActive(id,true)});window.__mk=mm&&mm.markers}
+  updateFavUI();
+}
+/* 라우터 */
+function go(){
+  closePlace();destroyMap();const h=location.hash.replace(/^#\/?/,"").split("/");
+  if(h[0]==="course"&&THEMES[h[1]])viewCourse(h[1]);else if(h[0]==="mine")viewMine();else viewHome();
+  const cur2=h[0]==="course"?"course":h[0]==="mine"?"mine":"home";
+  document.querySelectorAll("nav a[data-nav]").forEach(a=>a.classList.toggle("on",a.dataset.nav===cur2));
+  if(h[0]==="course")document.querySelector('nav a[data-nav="course"]').href="#/course/"+h[1];
+  updateFavUI();scrollTo(0,0);
+}
+/* 데이터: 서버의 /api/places (일반정보 + 위치정보 API를 합친 결과)
+   API가 실패하면 /api/practice (1단계 파일 데이터)로 '연습 모드'로 보여 준다 */
+let bound=false;
+function boot(rows){
+  DATA=rows;
+  DATA.forEach(r=>{r.city=r.addr.split(" ")[1]||"";r.area=r.addr.split(" ").slice(1,3).join(" ")});
+  KEYS.forEach(k=>ROUTES[k]=route(DATA.filter(r=>r.theme===k)));
+  favs=favs.filter(i=>byId(i));
+  if(!bound){addEventListener("hashchange",go);bound=true}
+  go();
+}
+async function getJSON(url){
+  let r;try{r=await fetch(url)}catch{throw new Error("서버에 연결하지 못했습니다.")}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||"서버 오류 (HTTP "+r.status+")");
+  return j;
+}
+async function fetchPlaces(){
+  try{
+    const j=await getJSON("/api/places");
+    if(!j.length)throw new Error("API에서 받은 장소가 없습니다.");
+    return {rows:j,reason:null};
+  }catch(e){
+    try{return {rows:await getJSON("/api/practice"),reason:e.message}}catch{throw e}
+  }
+}
+function showPractice(reason){
+  const b=$("#practice");b.hidden=!reason;
+  if(reason)b.innerHTML=`<div class="wrap"><b>연습 모드</b> 데이터 API에 연결하지 못해 1단계 파일 데이터(2022-12-09 기준)로 보여 주고 있어요. <small>사유: ${esc(reason)}</small> <button onclick="load(true)">API 다시 연결</button></div>`;
+}
+function failed(msg){
+  $("#app").innerHTML=`<div class="wrap"><div class="empty" style="margin:60px 0"><p style="font-size:18px;margin:0 0 6px">데이터를 불러오지 못했습니다.</p>${esc(msg)}<br><br><button class="btn" onclick="load()">다시 시도</button></div></div>`;
+}
+/* quiet=true: 연습 모드에서 화면을 유지한 채 API 재연결만 시도 */
+async function load(quiet){
+  if(!quiet){destroyMap();showPractice(null);$("#app").innerHTML='<div class="wrap"><div class="empty loading" style="margin:60px 0"><div class="spinner"></div>데이터를 불러오는 중…</div></div>'}
+  else $("#practice button").textContent="연결 중…";
+  try{
+    const {rows,reason}=await fetchPlaces();
+    if(quiet&&reason){showPractice(reason);toast("아직 API에 연결되지 않았어요");return}
+    boot(rows);showPractice(reason);
+    if(quiet)toast("API 데이터로 전환했어요");
+  }catch(e){
+    if(quiet){showPractice(e.message);return}
+    failed(e.message);
+  }
+}
+load();
+</script>
+</body>
+</html>

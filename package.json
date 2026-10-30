@@ -1,0 +1,12 @@
+{
+  "name": "jeju-culture-trail",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local server.js"
+  },
+  "engines": {
+    "node": ">=22.9"
+  }
+}
