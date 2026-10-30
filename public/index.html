@@ -114,7 +114,16 @@ footer a{color:#ffc58f}
 .practice button{font:inherit;font-size:13px;margin-left:6px;padding:2px 10px;border:1px solid #4a3800;border-radius:6px;background:transparent;color:inherit;cursor:pointer}
 .spinner{width:34px;height:34px;margin:0 auto 12px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 18px;border-radius:99px;font-size:14px;z-index:3000}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#222;color:#fff;padding:9px 18px;border-radius:99px;font-size:14px;z-index:3000;max-width:92vw;display:flex;align-items:center;gap:10px}
+.toast button{border:0;border-radius:99px;background:#ff922b;color:#222;font-weight:700;padding:2px 12px;white-space:nowrap}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.steps li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.steps b{display:block;font-family:"Noto Serif KR",serif;margin-bottom:2px}
+.steps span{font-size:14px;color:var(--muted)}
+.steps a{color:var(--accent);font-weight:700}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.skel{background:linear-gradient(90deg,var(--line) 25%,var(--card) 50%,var(--line) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:10px}
+@keyframes shimmer{to{background-position:-200% 0}}
 </style>
 </head>
 <body>
@@ -158,19 +167,28 @@ function route(list){ // 서쪽 끝에서 시작해 가까운 곳부터
   return out;
 }
 const ROUTES={};
-/* 찜 (자료 조회 화면과 같은 저장 키 공유) */
+/* 수첩 (자료 조회 화면과 같은 저장 키 공유) */
 let favs=[];try{favs=JSON.parse(localStorage.getItem("jejuFavs")||"[]")}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem("jejuFavs",JSON.stringify(favs))}catch(e){}};
 const favLabel=id=>favs.includes(id)?"★ 수첩에 담김":"☆ 수첩에 담기";
 const favBtn=id=>`<button class="favbtn${favs.includes(id)?" on":""}" data-fav="${id}" onclick="toggleFav(${id})">${favLabel(id)}</button>`;
-function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
+let toastEl=null;
+function toast(t,act){
+  if(toastEl)toastEl.remove();
+  const e=toastEl=document.createElement("div");e.className="toast";e.setAttribute("role","status");e.append(t);
+  if(act){const b=document.createElement("button");b.textContent=act.label;b.onclick=()=>{e.remove();act.fn()};e.append(b)}
+  document.body.appendChild(e);setTimeout(()=>e.remove(),act?3200:1800);
+}
 function updateFavUI(){
   document.querySelectorAll("[data-fav]").forEach(b=>{const id=+b.dataset.fav;b.textContent=favLabel(id);b.classList.toggle("on",favs.includes(id))});
   const bd=$("#badge");bd.hidden=!favs.length;bd.textContent=favs.length;
 }
 function toggleFav(id){
-  const i=favs.indexOf(id);if(i>=0)favs.splice(i,1);else favs.push(id);
-  saveFavs();updateFavUI();if(isMine())viewMine();
+  const i=favs.indexOf(id),r=byId(id);if(i>=0)favs.splice(i,1);else favs.push(id);
+  saveFavs();updateFavUI();
+  if(isMine()){viewMine();toast(`수첩에서 뺐어요: ${r.name}`)}
+  else if(i>=0)toast(`수첩에서 뺐어요: ${r.name}`);
+  else toast(`수첩에 담았어요: ${r.name} (지금 ${favs.length}곳)`,{label:"수첩 보기",fn:()=>{closePlace();location.hash="#/mine"}});
 }
 const isMine=()=>location.hash.startsWith("#/mine");
 /* 지도 */
@@ -192,7 +210,7 @@ function mkMap(el,list,o){
 /* 상세 모달 */
 function openPlace(id){
   const r=byId(id),t=THEMES[r.theme],row=(k,v)=>v&&v!=="해당없음"?`<dt>${k}</dt><dd>${v}</dd>`:"";
-  $("#modal").innerHTML=`<div class="sheet"><button class="x" onclick="closePlace()" aria-label="닫기">×</button>
+  $("#modal").innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="장소 상세"><button class="x" onclick="closePlace()" aria-label="닫기">×</button>
    <span class="chip" style="background:${t.color}">${esc(t.name)}</span>
    <h2>${esc(r.name)}</h2><div style="color:var(--muted);font-size:14px">${esc(r.addr)}</div>
    <div style="margin:12px 0">${favBtn(r.id)} ${r.link?`<a class="sbtn" style="text-decoration:none;display:inline-block" href="${esc(r.link)}" target="_blank" rel="noopener">원문 보기 ↗</a>`:""}</div>
@@ -200,9 +218,25 @@ function openPlace(id){
    ${r.abs&&r.abs!=="해당없음"?`<h4>초록</h4><div class="txt">${esc(r.abs)}</div>`:""}
    ${r.body?`<h4>내용</h4><div class="txt">${esc(r.body)}</div>`:""}
    ${r.ref&&r.ref!=="해당없음"?`<h4>참고문헌</h4><div class="txt" style="font-size:13px;color:var(--muted)">${esc(r.ref)}</div>`:""}</div>`;
-  $("#modal").classList.add("on");document.body.style.overflow="hidden";$("#modal").scrollTop=0;
+  const m=$("#modal");m.classList.add("on");document.body.style.overflow="hidden";m.scrollTop=0;
+  if(!m.classList.contains("opened"))lastFocus=document.activeElement;
+  m.classList.add("opened");
+  m.querySelector(".x").focus();
 }
-function closePlace(){$("#modal").classList.remove("on");document.body.style.overflow=""}
+let lastFocus=null;
+function closePlace(){
+  const m=$("#modal");if(!m.classList.contains("on"))return;
+  m.classList.remove("on","opened");document.body.style.overflow="";
+  if(lastFocus&&lastFocus.focus&&document.contains(lastFocus))lastFocus.focus();lastFocus=null;
+}
+/* 팝업창 안에서 Tab 키가 밖으로 나가지 않게 */
+$("#modal").addEventListener("keydown",e=>{
+  if(e.key!=="Tab")return;
+  const f=[...$("#modal").querySelectorAll("button,a[href]")].filter(x=>!x.disabled);
+  if(!f.length)return;const a=f[0],z=f[f.length-1];
+  if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}
+  else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}
+});
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closePlace()});
 addEventListener("keydown",e=>{if(e.key==="Escape")closePlace()});
 /* 화면: 홈 */
@@ -218,6 +252,10 @@ function viewHome(){
     <a class="btn" href="#course-list" onclick="document.getElementById('course-list').scrollIntoView();return false">코스 둘러보기</a><a class="btn ghost" href="#/mine">내 답사수첩 열기</a>
   </div></header>
   <div class="wrap">
+  <section class="blk"><h2 class="sec serif">이용 방법</h2><p class="sec-sub">처음이라면 이 순서로 써 보세요.</p>
+    <ol class="steps"><li><b>1. 코스 고르기</b><span>바다, 오름, 신당처럼 관심 있는 테마 코스를 열어 보세요.</span></li>
+    <li><b>2. 수첩에 담기</b><span>가 보고 싶은 장소 카드나 지도 핀의 <u>☆ 수첩에 담기</u>를 누르세요. 담은 순서가 곧 답사 순서가 됩니다.</span></li>
+    <li><b>3. 내 코스 확인하기</b><span>위쪽 메뉴의 <a href="#/mine">내 답사수첩</a>에서 순서를 바꾸고, 지도에 이어진 경로와 거리를 확인하세요.</span></li></ol></section>
   <section class="blk"><h2 class="sec serif">오늘의 장소</h2><p class="sec-sub">매일 한 곳씩, 데이터 속 이야기를 소개합니다.</p>
     <div class="today"><span class="chip" style="background:${tt.color};justify-self:start">${esc(tt.name)}</span><h3>${esc(td.name)}</h3>
     <div style="color:var(--muted);font-size:14px">${esc(td.addr)}</div><p>${esc(snip(td,200))}</p>
@@ -272,7 +310,7 @@ function copyCourse(){
 }
 function viewMine(){
   destroyMap();const l=favs.map(byId),lg=legs(l);
-  $("#app").innerHTML=`<header class="chead" style="background:#e8590c"><div class="wrap"><a href="#/">← 홈</a><h1>내 답사수첩</h1><p>찜한 순서대로 이어진 나만의 답사 코스입니다. 순서를 바꾸면 지도의 선도 함께 바뀝니다.</p>
+  $("#app").innerHTML=`<header class="chead" style="background:#e8590c"><div class="wrap"><a href="#/">← 홈</a><h1>내 답사수첩</h1><p>담은 순서대로 이어진 나만의 답사 코스입니다. 순서를 바꾸면 지도의 선도 함께 바뀝니다.</p>
    <div class="facts"><span>📍 ${l.length}곳</span><span>직선거리 합계 약 ${sum(lg).toFixed(1)}km</span></div></div></header>
   <div class="wrap">`+(l.length?`<div class="cols" style="padding-bottom:20px"><div><div class="acts"><button class="sbtn" onclick="copyCourse()">코스를 글로 복사</button><button class="sbtn" onclick="if(confirm('수첩을 모두 비울까요?')){favs=[];saveFavs();updateFavUI();viewMine()}">전체 비우기</button></div>${l.map((r,j)=>stopCard(r,j,lg,null,true)).join("")}</div>
    <div class="mapcol"><div class="map" id="map"></div></div></div>`:
@@ -317,14 +355,20 @@ async function fetchPlaces(){
 }
 function showPractice(reason){
   const b=$("#practice");b.hidden=!reason;
-  if(reason)b.innerHTML=`<div class="wrap"><b>연습 모드</b> 데이터 API에 연결하지 못해 1단계 파일 데이터(2022-12-09 기준)로 보여 주고 있어요. <small>사유: ${esc(reason)}</small> <button onclick="load(true)">API 다시 연결</button></div>`;
+  if(reason){
+    console.warn("[연습 모드] 데이터 API 실패:",reason);
+    b.setAttribute("role","status");
+    b.innerHTML=`<div class="wrap"><b>연습 모드</b> 최신 데이터를 가져오지 못해 저장된 자료(2022-12-09 기준)로 보여 드리고 있어요. <button onclick="load(true)">다시 연결</button></div>`;
+  }
 }
 function failed(msg){
-  $("#app").innerHTML=`<div class="wrap"><div class="empty" style="margin:60px 0"><p style="font-size:18px;margin:0 0 6px">데이터를 불러오지 못했습니다.</p>${esc(msg)}<br><br><button class="btn" onclick="load()">다시 시도</button></div></div>`;
+  console.warn("[데이터 불러오기 실패]",msg);
+  $("#app").innerHTML=`<div class="wrap"><div class="empty" style="margin:60px 0" role="alert"><p style="font-size:18px;margin:0 0 6px">데이터를 불러오지 못했어요.</p>잠시 후 다시 시도해 주세요.<br><br><button class="btn" onclick="load()">다시 시도</button></div></div>`;
 }
+const skeleton=()=>`<div role="status" aria-live="polite" aria-label="데이터를 불러오는 중"><div class="skel" style="height:300px;border-radius:0"></div><div class="wrap" style="padding-top:28px"><div style="text-align:center;color:var(--muted);margin-bottom:20px"><div class="spinner"></div>데이터를 불러오는 중…</div><div class="grid">${"<div class='skel' style='height:150px'></div>".repeat(6)}</div></div></div>`;
 /* quiet=true: 연습 모드에서 화면을 유지한 채 API 재연결만 시도 */
 async function load(quiet){
-  if(!quiet){destroyMap();showPractice(null);$("#app").innerHTML='<div class="wrap"><div class="empty loading" style="margin:60px 0"><div class="spinner"></div>데이터를 불러오는 중…</div></div>'}
+  if(!quiet){destroyMap();showPractice(null);$("#app").innerHTML=skeleton()}
   else $("#practice button").textContent="연결 중…";
   try{
     const {rows,reason}=await fetchPlaces();

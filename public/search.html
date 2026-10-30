@@ -76,12 +76,15 @@ dt{color:var(--muted)}dd{margin:0;word-break:break-word}
 .map{padding:10px}
 .map h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
 svg{width:100%;height:auto;display:block;background:var(--bg);border-radius:6px}
+.back{margin-top:4px;font-size:14px}.back a{color:var(--accent);font-weight:600}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="practice" id="practice" hidden></div>
 <header>
   <h1>제주 역사문화 정보 조회</h1>
+  <nav class="back"><a href="/">← 탐방기 홈</a> · <a href="/#/mine">내 답사수첩</a></nav>
   <p>제주특별자치도 제주역사문화 위치정보 + 일반정보 (데이터 기준일 2022-12-09)</p>
 </header>
 <div class="wrap">
@@ -131,7 +134,7 @@ const icon=id=>{const s=id===sel,n=favs.indexOf(id)+1;return L.divIcon({classNam
 let favs=[];try{favs=JSON.parse(localStorage.getItem("jejuFavs")||"[]")}catch(e){}
 const saveFavs=()=>{try{localStorage.setItem("jejuFavs",JSON.stringify(favs))}catch(e){}};
 const byId=id=>DATA.find(r=>r.id===id);
-const favBtn=r=>{const i=favs.indexOf(r.id);return `<button class="favbtn${i>=0?" on":""}" onclick="toggleFav(${r.id})">${i>=0?`★ 찜 해제 (코스 ${i+1}번)`:"☆ 찜하기"}</button>`};
+const favBtn=r=>{const i=favs.indexOf(r.id);return `<button class="favbtn${i>=0?" on":""}" onclick="toggleFav(${r.id})">${i>=0?`★ 수첩에 담김 (${i+1}번째)`:"☆ 수첩에 담기"}</button>`};
 function toggleFav(id){
   const i=favs.indexOf(id);if(i>=0)favs.splice(i,1);else favs.push(id);
   saveFavs();if(sel===id)show(id,true);else render();
@@ -141,9 +144,9 @@ function moveFav(id,d){const i=favs.indexOf(id),j=i+d;if(j<0||j>=favs.length)ret
 function dist(a,b){const R=6371,t=x=>x*Math.PI/180,h=Math.sin(t(b.lat-a.lat)/2)**2+Math.cos(t(a.lat))*Math.cos(t(b.lat))*Math.sin(t(b.lng-a.lng)/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 function renderCourse(){
   const L2=favs.map(byId),legs=L2.slice(1).map((r,i)=>dist(L2[i],r)),tot=legs.reduce((a,b)=>a+b,0);
-  $("#course").innerHTML=`<h3>나만의 답사 코스</h3>`+(favs.length?
-   `<div class="sum">${favs.length}곳 · 직선거리 합계 약 ${tot.toFixed(1)}km</div><ol>`+L2.map((r,i)=>`<li><span class="n">${i+1}</span><span class="t" onclick="show(${r.id})" title="${esc(r.name)}">${esc(r.name)}</span><span class="d">${i?`+${legs[i-1].toFixed(1)}km`:"출발"}</span><button onclick="moveFav(${r.id},-1)" ${i?"":"disabled"}>▲</button><button onclick="moveFav(${r.id},1)" ${i<L2.length-1?"":"disabled"}>▼</button><button onclick="toggleFav(${r.id})">✕</button></li>`).join("")+`</ol><div class="acts"><button onclick="fitCourse()">코스 전체 보기</button><button onclick="if(confirm('찜 목록을 모두 지울까요?')){favs=[];saveFavs();render()}">전체 삭제</button></div>`
-   :`<div class="sum">상세 카드나 지도 팝업의 ☆ 찜하기를 누르면 찜한 순서대로 코스가 만들어집니다.</div>`);
+  $("#course").innerHTML=`<h3>내 답사수첩</h3>`+(favs.length?
+   `<div class="sum">${favs.length}곳 · 직선거리 합계 약 ${tot.toFixed(1)}km</div><ol>`+L2.map((r,i)=>`<li><span class="n">${i+1}</span><span class="t" onclick="show(${r.id})" title="${esc(r.name)}">${esc(r.name)}</span><span class="d">${i?`+${legs[i-1].toFixed(1)}km`:"출발"}</span><button onclick="moveFav(${r.id},-1)" ${i?"":"disabled"}>▲</button><button onclick="moveFav(${r.id},1)" ${i<L2.length-1?"":"disabled"}>▼</button><button onclick="toggleFav(${r.id})">✕</button></li>`).join("")+`</ol><div class="acts"><button onclick="fitCourse()">코스 전체 보기</button><button onclick="if(confirm('수첩을 모두 비울까요?')){favs=[];saveFavs();render()}">전체 비우기</button></div>`
+   :`<div class="sum">상세 카드나 지도 팝업의 ☆ 수첩에 담기를 누르면 담은 순서대로 코스가 만들어집니다.</div>`);
 }
 function fitCourse(){if(map&&favs.length)map.fitBounds(L.latLngBounds(favs.map(i=>{const r=byId(i);return[r.lat,r.lng]})),{padding:[40,40],maxZoom:14})}
 function popHtml(r){
@@ -166,7 +169,7 @@ function drawMap(fit){
   if(route){route.remove();route=null}
   if(favs.length>1)route=L.polyline(favs.map(i=>{const r=byId(i);return[r.lat,r.lng]}),{color:"#f08c00",weight:4,opacity:.9,dashArray:"9 8"}).addTo(map);
   const extra=favs.filter(i=>!ids.has(i)).length;
-  $("#mapnote").textContent=`지도에 핀 ${view.length}개 표시 중`+(extra?` (+ 검색 밖 찜 ${extra}곳)`:"");
+  $("#mapnote").textContent=`지도에 핀 ${view.length}개 표시 중`+(extra?` (+ 검색 밖 수첩 ${extra}곳)`:"");
   if(fit&&view.length)map.fitBounds(L.latLngBounds(view.map(r=>[r.lat,r.lng])),{padding:[30,30],maxZoom:14});
 }
 function show(id,fromMap){
@@ -206,7 +209,7 @@ async function fetchPlaces(){
 }
 function showPractice(reason){
   const b=$("#practice");b.hidden=!reason;
-  if(reason)b.innerHTML=`<b>연습 모드</b> 데이터 API에 연결하지 못해 1단계 파일 데이터(2022-12-09 기준)로 보여 주고 있어요. <small>사유: ${esc(reason)}</small> <button onclick="load(true)">API 다시 연결</button>`;
+  if(reason){console.warn("[연습 모드] 데이터 API 실패:",reason);b.setAttribute("role","status");b.innerHTML=`<b>연습 모드</b> 최신 데이터를 가져오지 못해 저장된 자료(2022-12-09 기준)로 보여 드리고 있어요. <button onclick="load(true)">다시 연결</button>`}
 }
 function apply(rows){
   DATA=rows;prep();favs=favs.filter(i=>byId(i));
@@ -215,7 +218,7 @@ function apply(rows){
 }
 /* quiet=true: 연습 모드에서 화면을 유지한 채 API 재연결만 시도 */
 async function load(quiet){
-  if(!quiet){showPractice(null);$("#count").innerHTML='<span class="spinner"></span>데이터를 불러오는 중…'}
+  if(!quiet){showPractice(null);$("#count").removeAttribute("role");$("#count").setAttribute("aria-live","polite");$("#count").innerHTML='<span class="spinner"></span>데이터를 불러오는 중…'}
   else $("#practice button").textContent="연결 중…";
   try{
     const {rows,reason}=await fetchPlaces();
@@ -223,7 +226,7 @@ async function load(quiet){
     apply(rows);showPractice(reason);
   }catch(e){
     if(quiet){showPractice(e.message);return}
-    $("#count").innerHTML=`데이터를 불러오지 못했습니다: ${esc(e.message)} <button onclick="load()">다시 시도</button>`;
+    console.warn("[데이터 불러오기 실패]",e.message);$("#count").setAttribute("role","alert");$("#count").innerHTML=`데이터를 불러오지 못했어요. 잠시 후 다시 시도해 주세요. <button onclick="load()">다시 시도</button>`;
   }
 }
 load();

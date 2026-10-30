@@ -221,8 +221,12 @@ http
       else await handleStatic(url, res)
     } catch (e) {
       const status = e instanceof HttpError ? e.status : 500
-      if (status === 500) console.error(e.message)
-      send(res, status, { error: status === 500 ? '서버 오류' : e.message })
+      // 방문자에게는 일반 문구만, 원인(키 누락·인증 실패·연결 실패 등)은 서버 로그에만 남긴다
+      if (status >= 500) {
+        console.error(`[${new Date().toISOString()}] ${req.url.split('?')[0]} → ${status}: ${e.message}`)
+        return send(res, status, { error: '지금은 데이터를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.' })
+      }
+      send(res, status, { error: e.message })
     }
   })
   .listen(PORT, '127.0.0.1', () => {
